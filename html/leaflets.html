@@ -1,0 +1,31 @@
+<head>
+    <title>Cyberden mbtiles server</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.2.1/css/ol.css" type="text/css">
+    <style>
+        .map {
+          height: 400px;
+          width: 100%;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.2.1/build/ol.js"></script>
+</head>
+<body>
+    <div id="map" class="map"></div>
+    <script>
+        var map = new ol.Map({
+            layers: [
+                new ol.layer.Tile({
+                    source: new ol.source.XYZ({
+                        url: "http://localhost:8080/out/{z}/{x}/{y}.mvt"
+                    })
+                })
+            ],
+            target: 'map',
+            view: new ol.View({
+                center: [33.737635, 45.386211],
+                zoom: 0
+            })
+        });
+    </script>
+</body>
+</html>

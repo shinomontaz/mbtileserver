@@ -1,0 +1,178 @@
+<head>
+    <title>Cyberden mbtiles server</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.2.1/css/ol.css" type="text/css">
+    <style>
+        .map {
+          height: 800px;
+          width: 100%;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.2.1/build/ol.js"></script>
+</head>
+<body>
+    <div id="map" class="map"></div>
+    <script>
+        var defaultStyles = new ol.layer.Vector().getStyleFunction()();
+        var roadStyleCache = {};
+        var landStyleCache = {};
+        var landcoverStyleCache = {};
+        var namesStyleCache = {};
+        var roadColor = {
+        'motorway': '#F00',
+        'primary': '#ccb',
+        'trunk': '#f39',
+        'rail': '#0F0'
+        };
+        var landColor = {
+        'residential': '#E0DFDF',
+        'industrial': '#E0DFDF',
+        'farmland': '#C8D7AB',
+        'meadow': '#CDEBB0',
+        'recreation_ground': '#DFFCE2',
+        'default': '#E0DFDF',
+        };
+        var landcoverColor = {
+        'wood': '#ABD19B',
+        'wetland': '#C9D7AD',
+        'grass': '#CEECB1',
+        'farmland': '#EFF0D6',
+        };
+
+        var nameClass = {
+            'state': 1,
+            'city': 2,
+            'country': 3,
+            'capital': 5,
+        }
+        var nameColorClass = {
+            'state': '#AAA',
+            'city': '#A00',
+            'country': '#F00',
+            'capital': '#B00',
+        }
+    var styleFunction = function(feature, resolution) {
+//        console.log(feature.get('layer'));
+        if (feature.get('layer') == 'place') {
+            var name = feature.get('name:latin');
+            var cl = feature.get('class');
+            var style = namesStyleCache[name + '/' + cl];
+            if (!style) {
+                style = new ol.style.Style({
+                    text: new ol.style.Text({
+                        fill: new ol.style.Fill({ color: nameColorClass[cl] }),
+                        stroke: new ol.style.Stroke({
+                          color: '#fff',
+                          width: nameClass[cl],
+                        }),
+                        text: name,
+                    }),
+                    stroke: new ol.style.Stroke({
+                        color: nameColorClass[cl], //'#3399CC',
+                        width: nameClass[cl],
+                    })
+                });
+                namesStyleCache[name + '/' + cl] = style;
+            }
+            return style
+        }
+        if (feature.get('layer') == 'landcover') {
+            var kind = feature.get('class');
+            var style = landcoverStyleCache[kind];
+            if (!style) {
+                style = new ol.style.Style({
+                    fill: new ol.style.Fill({
+                        color: landcoverColor[kind],
+                        opacity: 0.4
+                    }),
+                });
+                landcoverStyleCache[kind] = style;
+            }
+            return style
+        }
+        if (feature.get('layer') == 'transportation') {
+            var kind = feature.get('class');
+            var railway = feature.get('railway');
+            var style = roadStyleCache[kind + '/' + railway];
+            if (!style) {
+                var color, width;
+                color = roadColor[kind];
+                width = kind == 'trunk' ? 3 : 1;
+                width = kind == 'motorway' ? 2 : 1;
+                width = kind == 'primary' ? 1.5 : 1;
+
+                if (railway) {
+                    style = new ol.style.Style({
+                    stroke: new ol.style.Stroke({
+                        color: color,
+                        width: width,
+                        lineDash: [4],
+                    }),
+                    });
+                } else {
+                    style = new ol.style.Style({
+                    stroke: new ol.style.Stroke({
+                        color: color,
+                        width: width
+                    }),
+                    });
+                }
+                roadStyleCache[kind + '/' + railway] = style;
+            }
+            return style;
+        }
+        if (feature.get('layer') == 'boundary') {
+            return new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: '#ccc',
+                    width: 0.5,
+                    lineDash: [4],
+                }),
+            });
+        }
+        if (feature.get('layer') == 'landuse') {
+            var kind = feature.get('class');
+            if (!landColor[kind]) {
+                kind = 'default';
+            }
+            var style = landStyleCache[kind];
+            if (!style) {
+                style = new ol.style.Style({
+                    fill: new ol.style.Fill({
+                        color: landColor[kind],
+                        opacity: 0.4
+                    }),
+                });
+                landStyleCache[kind] = style;
+            }
+            return style
+        }
+        if (feature.get('layer') == 'water') {
+            return new ol.style.Style({
+                fill: new ol.style.Fill({
+                        color: '#9db9e8',
+                    }),
+                })
+        }
+        return(defaultStyles);
+    };
+
+        var map = new ol.Map({
+            layers: [
+                new ol.layer.VectorTile({
+                    tileOptions: {crossOriginKeyword: 'anonymous'},
+                    source: new ol.source.VectorTile({
+                        format: new ol.format.MVT(),
+                        url: "http://localhost:3001/tiles/{z}/{x}/{y}.png",
+                    }),
+                    style: styleFunction,
+                })
+            ],
+            target: 'map',
+            view: new ol.View({
+                center: ol.proj.fromLonLat([ 37.6, 55.7]),
+                zoom: 6
+            })
+        });
+    </script>
+</body>
+</html>
